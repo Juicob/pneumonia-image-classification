@@ -1,6 +1,9 @@
 # %%
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
+import pandas as pd
+import plotly.express as px
+import plotly.graph_objs as go
 import numpy as np
 
 import os
@@ -121,15 +124,27 @@ val_generator
 history = model.fit(
       train_generator,
       steps_per_epoch=8,  
-      epochs=3, #epochs=15
+      epochs=8, #epochs=15
       verbose=1,
       validation_data=val_generator)
 
 # %%
-result = model.evaluate(test)
-dict(zip(model.metrics_names, result))
+res_df = pd.DataFrame(history.history)
+res_df
 # %%
-history.history
+fig = px.line(res_df, x=res_df.index, y=["accuracy","val_accuracy"])
+fig.update_layout(title='Accuracy and Validation Accuracy over Epochs',
+                  xaxis_title='Epoch',
+                  yaxis_title='Percentage')
+fig.show()
+# %%
+fig = px.line(res_df, x=res_df.index, y=['loss','val_loss'])
+fig.update_layout(title='Loss and Validation Loss over Epochs',
+                  xaxis_title='Epoch',
+                  yaxis_title='idek what this unit is - change me')
+fig.show()
+# %%
+
 # %%
 #-----------------------------------------------------------
 # Retrieve a list of list results on training and test data
@@ -145,16 +160,18 @@ epochs=range(len(accuracy)) # Get number of epochs
 #------------------------------------------------
 # Plot training and validation accuracy per epoch
 #------------------------------------------------
-plt.plot(epochs, accuracy, 'r', "Training Accuracy")
-plt.plot(epochs, val_acc, 'b', "Validation Accuracy")
+plt.plot(epochs, accuracy, 'r', "Training Accuracy", label='T-Accuracy')
+plt.plot(epochs, val_acc, 'b', "Validation Accuracy", label='V-Accuracy')
 plt.title('Training and validation accuracy')
+plt.legend()
 plt.figure()
  
 #------------------------------------------------
 # Plot training and validation loss per epoch
 #------------------------------------------------
-plt.plot(epochs, loss, 'r', "Training Loss")
-plt.plot(epochs, val_loss, 'b', "Validation Loss")
+plt.plot(epochs, loss, 'r', "Training Loss", label='T-Loss')
+plt.plot(epochs, val_loss, 'b', "Validation Loss", label='V-Loss')
+plt.legend()
 plt.figure()
 # %%
 
