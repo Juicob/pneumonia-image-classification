@@ -5,6 +5,7 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objs as go
 import numpy as np
+import datetime
 
 import os
 from tqdm import tqdm
@@ -13,10 +14,13 @@ import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from tensorflow.keras.optimizers import RMSprop
+from tensorflow.keras.callbacks import TensorBoard
+
+%load_ext tensorboard
 
 
 # %%
-def plot_results(results, results_dataframe):
+def plot_results(results):
   """Function to convert a models results into a dataframe and plot them to show the both the accuracy and validation accuracy, as well as the loss and validation loss over epochs.
 
   Args:
@@ -106,6 +110,8 @@ test_generator = img_datagen.flow_from_directory(
         # Since we use binary_crossentropy loss, we need binary labels
         class_mode='binary')       
 # %%
+train_generator.class_indices
+# %%
 nrows = 4
 ncols = 4
 
@@ -151,13 +157,13 @@ model1 = tf.keras.models.Sequential([
     tf.keras.layers.Flatten(),
     # 512 neuron hidden layer
     tf.keras.layers.Dense(512, activation='relu'),
-    # Only 1 output neuron. It will contain a value from 0-1 where 0 for 1 class ('horses') and 1 for the other ('humans')
+    # Only 1 output neuron. It will contain a value from 0-1
     tf.keras.layers.Dense(1, activation='sigmoid')
 ])
 # %%
 model1.summary()
 # %%
- 
+%%time
 model1.compile(loss='binary_crossentropy',
               optimizer=RMSprop(lr=0.001),
               metrics=['accuracy'])
@@ -173,31 +179,24 @@ history = model1.fit(
 # res_df = pd.DataFrame(history.history)
 # res_df
 # %%
-plot_results(history.history, res_df)
+plot_results(history.history)
 # %%
 
 model2 = tf.keras.models.Sequential([
-    # Note the input shape is the desired size of the image 300x300 with 3 bytes color
-    # This is the first convolution
+  
     tf.keras.layers.Conv2D(16, (3,3), activation='relu', input_shape=(300, 300, 3)),
     tf.keras.layers.MaxPooling2D(2, 2),
-    # The second convolution
     tf.keras.layers.Conv2D(32, (3,3), activation='relu'),
     tf.keras.layers.MaxPooling2D(2,2),
-    # The third convolution
     tf.keras.layers.Conv2D(64, (3,3), activation='relu'),
     tf.keras.layers.MaxPooling2D(2,2),
-    # The fourth convolution
     tf.keras.layers.Conv2D(64, (3,3), activation='relu'),
     tf.keras.layers.MaxPooling2D(2,2),
-    # The fifth convolution
     tf.keras.layers.Conv2D(64, (3,3), activation='relu'),
     tf.keras.layers.MaxPooling2D(2,2),
-    # Flatten the results to feed into a DNN
+  
     tf.keras.layers.Flatten(),
-    # 512 neuron hidden layer
     tf.keras.layers.Dense(512, activation='relu'),
-    # Only 1 output neuron. It will contain a value from 0-1 where 0 for 1 class ('horses') and 1 for the other ('humans')
     tf.keras.layers.Dense(1, activation='sigmoid')
 ])
 # %%
@@ -212,46 +211,80 @@ history2 = model2.fit(
       verbose=1,
       validation_data=val_generator)
 
-plot_results(history2.history, res_df)
+plot_results(history2.history)
 
 # %%
 model3 = tf.keras.models.Sequential([
-    # Note the input shape is the desired size of the image 300x300 with 3 bytes color
-    # This is the first convolution
+
     tf.keras.layers.Conv2D(32, (3,3), activation='relu', input_shape=(300, 300, 3)),
     tf.keras.layers.MaxPooling2D(2, 2),
-    # The second convolution
-    tf.keras.layers.Conv2D(64, (3,3), activation='relu'),
-    tf.keras.layers.Dropout(0.1),
-    tf.keras.layers.MaxPooling2D(2,2),
-    # The third convolution
     tf.keras.layers.Conv2D(64, (3,3), activation='relu'),
     tf.keras.layers.MaxPooling2D(2,2),
-    # The fourth convolution
-    tf.keras.layers.Conv2D(64, (3,3), activation='relu'),
-    tf.keras.layers.Dropout(0.2),
-    tf.keras.layers.MaxPooling2D(2,2),
-    # The fifth convolution
     tf.keras.layers.Conv2D(64, (3,3), activation='relu'),
     tf.keras.layers.MaxPooling2D(2,2),
-    # Flatten the results to feed into a DNN
+    tf.keras.layers.Conv2D(64, (3,3), activation='relu'),
+    tf.keras.layers.MaxPooling2D(2,2),
+    tf.keras.layers.Conv2D(64, (3,3), activation='relu'),
+    tf.keras.layers.MaxPooling2D(2,2),
+
     tf.keras.layers.Flatten(),
-    # 512 neuron hidden layer
-    tf.keras.layers.Dense(512, activation='relu'),
-    # Only 1 output neuron. It will contain a value from 0-1 where 0 for 1 class ('horses') and 1 for the other ('humans')
+    tf.keras.layers.Dense(256, activation='relu'),
     tf.keras.layers.Dense(1, activation='sigmoid')
 ])
 # %%
 model3.compile(loss='binary_crossentropy',
-              optimizer=RMSprop(lr=0.001),
+              optimizer="Adam",
               metrics=['accuracy'])
 
 history3 = model3.fit(
       train_generator,
       steps_per_epoch=8,  
-      epochs=20, #epochs=15
+      epochs=1, #epochs=20
       verbose=1,
       validation_data=val_generator)
 
-plot_results(history3.history, res_df)
+plot_results(history3.history)
+# %%
+tensorboard = TensorBoard(log_dir=f'./logs/model4_{datetime.datetime.now().strftime("%Y%m%d-%H%M%S")}')
+# %%
+model4 = tf.keras.models.Sequential([
+
+    tf.keras.layers.Conv2D(32, (3,3), activation='relu', input_shape=(300, 300, 3)),
+    tf.keras.layers.MaxPooling2D(2, 2),
+    tf.keras.layers.Conv2D(64, (3,3), activation='relu'),
+    tf.keras.layers.MaxPooling2D(2,2),
+    tf.keras.layers.Conv2D(64, (3,3), activation='relu'),
+    tf.keras.layers.MaxPooling2D(2,2),
+    tf.keras.layers.Conv2D(64, (3,3), activation='relu'),
+    tf.keras.layers.MaxPooling2D(2,2),
+    tf.keras.layers.Conv2D(64, (3,3), activation='relu'),
+    tf.keras.layers.MaxPooling2D(2,2),
+    
+    tf.keras.layers.Flatten(),
+    tf.keras.layers.Dense(256, activation='relu'),
+    tf.keras.layers.Dense(1, activation='sigmoid')
+
+])
+# %%
+%%time
+model4.compile(loss='binary_crossentropy',
+              optimizer="Adam",
+              metrics=['accuracy'])
+
+                                                      
+history4 = model4.fit(
+      train_generator,
+      steps_per_epoch=8, #8  
+      epochs=2, #epochs=20
+      verbose=1,
+      validation_data=val_generator,
+      callbacks=[tensorboard]
+      )
+
+plot_results(history4.history)
+
+# %%
+preds = model4.predict(test_generator).round()
+# %%
+preds
 # %%
