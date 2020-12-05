@@ -1,4 +1,8 @@
 # %%
+import tensorflow as tf
+tf.ones((2,2))*5
+# %%
+import sys
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 import pandas as pd
@@ -16,7 +20,7 @@ from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from tensorflow.keras.optimizers import RMSprop
 from tensorflow.keras.callbacks import TensorBoard
 
-%load_ext tensorboard
+# %load_ext tensorboard
 
 
 # %%
@@ -247,6 +251,8 @@ plot_results(history3.history)
 # %%
 tensorboard = TensorBoard(log_dir=f'./logs/model4_{datetime.datetime.now().strftime("%Y%m%d-%H%M%S")}')
 # %%
+
+
 model4 = tf.keras.models.Sequential([
 
     tf.keras.layers.Conv2D(32, (3,3), activation='relu', input_shape=(300, 300, 3)),
@@ -267,19 +273,20 @@ model4 = tf.keras.models.Sequential([
 ])
 # %%
 %%time
-model4.compile(loss='binary_crossentropy',
-              optimizer="Adam",
-              metrics=['accuracy'])
 
-                                                      
+model4.compile(loss='binary_crossentropy',
+            optimizer="Adam",
+            metrics=['accuracy'])
+
+                                                    
 history4 = model4.fit(
-      train_generator,
-      steps_per_epoch=8, #8  
-      epochs=2, #epochs=20
-      verbose=1,
-      validation_data=val_generator,
-      callbacks=[tensorboard]
-      )
+    train_generator,
+    steps_per_epoch=8, #8  
+    epochs=2, #epochs=20
+    verbose=1,
+    validation_data=val_generator,
+    callbacks=[tensorboard]
+    )
 
 plot_results(history4.history)
 
@@ -288,3 +295,5 @@ preds = model4.predict(test_generator).round()
 # %%
 preds
 # %%
+from sklearn import metrics
+print(metrics.classification_report(test_generator,preds).round())
