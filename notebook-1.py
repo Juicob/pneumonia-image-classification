@@ -97,9 +97,8 @@ def plot_confusion_matrix(cm,
     plt.xlabel('Predicted label')
 
 def prepare_confusion_matrix(model):
-    predictions = model.predict(x=test_generator, verbose=2)
-    np.round(predictions)
-    cm = confusion_matrix(y_true=test_generator.classes, y_pred=np.argmax(predictions, axis=-1))
+    predictions = model.predict(x=test_generator, verbose=2).round()
+    cm = confusion_matrix(y_true=test_generator.classes, y_pred=predictions)
     return cm
     # test_generator.class_indices
   
@@ -141,21 +140,21 @@ img_datagen = ImageDataGenerator(rescale=1./255)
  
 # Flow training images in batches of 128 using train_datagen generator
 train_generator = img_datagen.flow_from_directory('../project_image_data/train/',  # Source dir for training images
-                                                  target_size=(128, 128),  # All images will be resized to 150x150
+                                                  target_size=(64, 64),  # All images will be resized to 150x150
                                                   batch_size=128,
                                                   color_mode='grayscale',
                                                   # Since we use binary_crossentropy loss, we need binary labels
                                                   class_mode='binary')
 
 val_generator = img_datagen.flow_from_directory('../project_image_data/val/', # This is th source dir for validation images
-                                                 target_size=(128, 128),  # All images will be resized to 150x150
+                                                 target_size=(64, 64),  # All images will be resized to 150x150
                                                  batch_size=128,
                                                  color_mode='grayscale',
                                                  # Since we use binary_crossentropy loss, we need binary labels
                                                  class_mode='binary')
 
 test_generator = img_datagen.flow_from_directory('../project_image_data/test/', # This is th source dir for validation images
-                                                 target_size=(128, 128),  # All images will be resized to 150x150
+                                                 target_size=(64, 64),  # All images will be resized to 150x150
                                                  batch_size=128,
                                                  color_mode='grayscale',
                                                  # Since we use binary_crossentropy loss, we need binary labels
@@ -187,13 +186,10 @@ for i, img_path in enumerate(next_normal_pix+next_pneumonia_pix):
   plt.imshow(img)
 
 plt.show()'''
-# %%
+
 
 # %%
 imgs, labels = next(train_generator)
-# %%
-
-# %%
 plotImages(imgs, labels)
 print()
 # %%
@@ -210,7 +206,7 @@ test_generator.class_indices
 model1 = tf.keras.models.Sequential([
     # Note the input shape is the desired size of the image 300x300 with 3 bytes color
     # This is the first convolution
-    tf.keras.layers.Conv2D(32, (3,3), activation='relu', input_shape=(128, 128, 1)),
+    tf.keras.layers.Conv2D(32, (3,3), activation='relu', input_shape=(64, 64, 1)),
     tf.keras.layers.MaxPooling2D(2, 2),
     # The second convolution
     tf.keras.layers.Conv2D(64, (3,3), activation='relu'),
@@ -227,25 +223,23 @@ model1.summary()
 # %%
 %%time
 model1.compile(loss='binary_crossentropy',
-              optimizer=RMSprop(lr=0.001),
+              optimizer=RMSprop(lr=0.0001),
               metrics=['accuracy'])
+# %%
+tensorboard = TensorBoard(log_dir=f'./logs/model1_{datetime.datetime.now().strftime("%Y%m%d-%H%M%S")}')
+earlystop = tf.keras.callbacks.EarlyStopping(patience=3, verbose=True)
 # %%
 %%time
 history1 = model1.fit(
       train_generator,
     #   steps_per_epoch=8,  
-      epochs=5, #epochs=15
+      epochs=100, #epochs=15
       verbose=1,
+      callbacks=[earlystop, tensorboard],
       validation_data=val_generator)
 
 # %%
-'''cm_plot_labels = ['Normal','Pneumonia']
-plot_confusion_matrix(cm=cm, classes=cm_plot_labels, title='Confusion Matrix')'''
-# %%
-
-#%%
 plot_results(history1.history)
-# %%
 cm = prepare_confusion_matrix(model1)
 plot_confusion_matrix(cm)
 
@@ -257,117 +251,164 @@ cm = confusion_matrix(y_true=test_generator.classes, y_pred=np.argmax(prediction
 '''from sklearn import metrics
 print(metrics.classification_report(y_test, predictions.round()))'''
 # %%
-
-# %%
-
 model2 = tf.keras.models.Sequential([
-  
-    tf.keras.layers.Conv2D(16, (3,3), activation='relu', input_shape=(300, 300, 3)),
+    # Note the input shape is the desired size of the image 300x300 with 3 bytes color
+    # This is the first convolution
+    tf.keras.layers.Conv2D(32, (3,3), activation='relu', input_shape=(64, 64, 1)),
     tf.keras.layers.MaxPooling2D(2, 2),
-    tf.keras.layers.Conv2D(32, (3,3), activation='relu'),
-    tf.keras.layers.MaxPooling2D(2,2),
+    # The second convolution
     tf.keras.layers.Conv2D(64, (3,3), activation='relu'),
     tf.keras.layers.MaxPooling2D(2,2),
-    tf.keras.layers.Conv2D(64, (3,3), activation='relu'),
-    tf.keras.layers.MaxPooling2D(2,2),
-    tf.keras.layers.Conv2D(64, (3,3), activation='relu'),
-    tf.keras.layers.MaxPooling2D(2,2),
-      # Flatten the results to feed into a DNN
+
     tf.keras.layers.Flatten(),
-        # 512 neuron hidden layer
-
-    tf.keras.layers.Dense(512, activation='relu'),
-        # Only 1 output neuron. It will contain a value from 0-1
-
+    # 512 neuron hidden layer
+    # tf.keras.layers.Dense(512, activation='relu'),
+    # Only 1 output neuron. It will contain a value from 0-1
     tf.keras.layers.Dense(1, activation='sigmoid')
 ])
 # %%
+model2.summary()
+# %%
 model2.compile(loss='binary_crossentropy',
-              optimizer=RMSprop(lr=0.001),
+              optimizer="Adam",
               metrics=['accuracy'])
 
+# %%
+%%time
+tensorboard = TensorBoard(log_dir=f'./logs/model2_{datetime.datetime.now().strftime("%Y%m%d-%H%M%S")}')
 history2 = model2.fit(
       train_generator,
-      steps_per_epoch=8,  
-      epochs=20, #epochs=15
+    #   steps_per_epoch=8,  
+      epochs=100, #epochs=15
       verbose=1,
+      callbacks=[earlystop, tensorboard],
       validation_data=val_generator)
 
+# %%
 plot_results(history2.history)
+cm = prepare_confusion_matrix(model2)
+plot_confusion_matrix(cm)
 
 # %%
 model3 = tf.keras.models.Sequential([
-
-    tf.keras.layers.Conv2D(32, (3,3), activation='relu', input_shape=(300, 300, 3)),
+    # Note the input shape is the desired size of the image 300x300 with 3 bytes color
+    # This is the first convolution
+    tf.keras.layers.Conv2D(32, (3,3), activation='relu', input_shape=(64, 64, 1)),
     tf.keras.layers.MaxPooling2D(2, 2),
-    tf.keras.layers.Conv2D(64, (3,3), activation='relu'),
-    tf.keras.layers.MaxPooling2D(2,2),
-    tf.keras.layers.Conv2D(64, (3,3), activation='relu'),
-    tf.keras.layers.MaxPooling2D(2,2),
+    # The second convolution
     tf.keras.layers.Conv2D(64, (3,3), activation='relu'),
     tf.keras.layers.MaxPooling2D(2,2),
     tf.keras.layers.Conv2D(64, (3,3), activation='relu'),
     tf.keras.layers.MaxPooling2D(2,2),
 
     tf.keras.layers.Flatten(),
-    tf.keras.layers.Dense(256, activation='relu'),
+    # 512 neuron hidden layer
+    # tf.keras.layers.Dense(512, activation='relu'),
+    # Only 1 output neuron. It will contain a value from 0-1
     tf.keras.layers.Dense(1, activation='sigmoid')
 ])
+# %%
+model3.summary()
 # %%
 model3.compile(loss='binary_crossentropy',
               optimizer="Adam",
               metrics=['accuracy'])
 
-history3 = model3.fit(
-      train_generator,
-      steps_per_epoch=8,  
-      epochs=1, #epochs=20
-      verbose=1,
-      validation_data=val_generator)
-
-plot_results(history3.history)
-# %%
-tensorboard = TensorBoard(log_dir=f'./logs/model4_{datetime.datetime.now().strftime("%Y%m%d-%H%M%S")}')
-# %%
-
-
-model4 = tf.keras.models.Sequential([
-
-    tf.keras.layers.Conv2D(32, (3,3), activation='relu', input_shape=(300, 300, 3)),
-    tf.keras.layers.MaxPooling2D(2, 2),
-    tf.keras.layers.Conv2D(64, (3,3), activation='relu'),
-    tf.keras.layers.MaxPooling2D(2,2),
-    tf.keras.layers.Conv2D(64, (3,3), activation='relu'),
-    tf.keras.layers.MaxPooling2D(2,2),
-    tf.keras.layers.Conv2D(64, (3,3), activation='relu'),
-    tf.keras.layers.MaxPooling2D(2,2),
-    tf.keras.layers.Conv2D(64, (3,3), activation='relu'),
-    tf.keras.layers.MaxPooling2D(2,2),
-    
-    tf.keras.layers.Flatten(),
-    tf.keras.layers.Dense(256, activation='relu'),
-    tf.keras.layers.Dense(1, activation='sigmoid')
-
-])
 # %%
 %%time
+tensorboard = TensorBoard(log_dir=f'./logs/model3_{datetime.datetime.now().strftime("%Y%m%d-%H%M%S")}')
+history3 = model3.fit(
+      train_generator,
+    #   steps_per_epoch=8,  
+      epochs=100, #epochs=15
+      verbose=1,
+      callbacks=[earlystop, tensorboard],
+      validation_data=val_generator)
 
+# %%
+plot_results(history3.history)
+cm = prepare_confusion_matrix(model3)
+plot_confusion_matrix(cm)
+# %%
+model4 = tf.keras.models.Sequential([
+    # Note the input shape is the desired size of the image 300x300 with 3 bytes color
+    # This is the first convolution
+    tf.keras.layers.Conv2D(32, (3,3), activation='relu', input_shape=(64, 64, 1)),
+    tf.keras.layers.MaxPooling2D(2, 2),
+    # The second convolution
+    tf.keras.layers.Conv2D(64, (3,3), activation='relu'),
+    tf.keras.layers.MaxPooling2D(2,2),
+    tf.keras.layers.Conv2D(128, (3,3), activation='relu'),
+    tf.keras.layers.MaxPooling2D(2,2),
+
+    tf.keras.layers.Flatten(),
+    # 512 neuron hidden layer
+    # tf.keras.layers.Dense(512, activation='relu'),
+    # Only 1 output neuron. It will contain a value from 0-1
+    tf.keras.layers.Dense(1, activation='sigmoid')
+])
+# %%
+model4.summary()
+# %%
 model4.compile(loss='binary_crossentropy',
-            optimizer="Adam",
-            metrics=['accuracy'])
+              optimizer="Adam",
+              metrics=['accuracy'])
 
-                                                    
+# %%
+%%time
+tensorboard = TensorBoard(log_dir=f'./logs/model4_{datetime.datetime.now().strftime("%Y%m%d-%H%M%S")}')
 history4 = model4.fit(
-    train_generator,
-    steps_per_epoch=8, #8  
-    epochs=20, #epochs=20
-    verbose=1,
-    validation_data=val_generator,
-    callbacks=[tensorboard]
-    )
+      train_generator,
+    #   steps_per_epoch=8,  
+      epochs=100, #epochs=15
+      verbose=1,
+      callbacks=[earlystop, tensorboard],
+      validation_data=val_generator)
 
+# %%
 plot_results(history4.history)
+cm = prepare_confusion_matrix(model4)
+plot_confusion_matrix(cm)
+# %%
+model5 = tf.keras.models.Sequential([
+    # Note the input shape is the desired size of the image 300x300 with 3 bytes color
+    # This is the first convolution
+    tf.keras.layers.Conv2D(32, (3,3), activation='relu', input_shape=(64, 64, 1)),
+    tf.keras.layers.MaxPooling2D(2, 2),
+    # The second convolution
+    tf.keras.layers.Conv2D(64, (3,3), activation='relu'),
+    tf.keras.layers.MaxPooling2D(2,2),
+    tf.keras.layers.Conv2D(128, (3,3), activation='relu'),
+    tf.keras.layers.MaxPooling2D(2,2),
 
+    tf.keras.layers.Flatten(),
+    # 512 neuron hidden layer
+    # tf.keras.layers.Dense(512, activation='relu'),
+    # Only 1 output neuron. It will contain a value from 0-1
+    tf.keras.layers.Dense(1, activation='sigmoid')
+])
+# %%
+model5.summary()
+# %%
+model5.compile(loss='binary_crossentropy',
+              optimizer="Adam",
+              metrics=['accuracy'])
+
+# %%
+%%time
+tensorboard = TensorBoard(log_dir=f'./logs/model5_{datetime.datetime.now().strftime("%Y%m%d-%H%M%S")}')
+history5 = model5.fit(
+      train_generator,
+    #   steps_per_epoch=8,  
+      epochs=100, #epochs=15
+      verbose=1,
+      callbacks=[earlystop, tensorboard],
+      validation_data=val_generator)
+
+# %%
+plot_results(history5.history)
+cm = prepare_confusion_matrix(model5)
+plot_confusion_matrix(cm)
 # %% [markdown]
 ### Use LIME to show 'feature' selection in a sense
 # %%
