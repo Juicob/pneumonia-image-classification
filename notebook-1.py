@@ -18,8 +18,11 @@ from tensorflow.random import set_seed
 from tensorflow.keras.optimizers import RMSprop
 from tensorflow.keras.callbacks import TensorBoard, ModelCheckpoint
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
-from sklearn.metrics import confusion_matrix
+from sklearn.metrics import confusion_matrix, roc_curve, auc
 from sklearn import metrics
+
+import visualkeras
+
 # %load_ext tensorboard
 set_seed(42)
 np.random.seed(42)
@@ -584,10 +587,37 @@ history9 = Adam_32_32_32_32_2D.fit(
 plot_results(history9.history)
 evaluate_results(Adam_32_32_32_32_2D)
 # %%
+# visualkeras.layered_view(Adam_32_32_32_32, to_file='network_visual.png').show()
 # %%
-# %%
+testload = tf.keras.models.load_model('Adam_32_32_32_32__best')
 
 # %%
+evaluate_results(testload)
+# %%
+preds = testload.predict(X_test)
+fpr, tpr, thresh = roc_curve(y_test, preds)
+
+# Calculate the ROC (Reciever Operating Characteristic) AUC (Area Under the Curve)
+rocauc = auc(fpr, tpr)
+print('Train ROC AUC Score: ', rocauc)
+# %%
+fig = px.area(
+    x=fpr, y=tpr,
+    title=f'ROC Curve (AUC={auc(fpr, tpr):.4f})',
+    labels=dict(x='False Positive Rate', y='True Positive Rate'),
+#     marker=dict(color='fa7f72'),
+
+    width=700, height=500
+)
+fig.add_shape(
+    type='line', line=dict(dash='dash'),
+    x0=0, x1=1, y0=0, y1=1
+)
+
+fig.update_yaxes(scaleanchor="x", scaleratio=1)
+fig.update_xaxes(constrain='domain', tickvals=[0,0.25,0.5,0.75,1])
+
+fig.show()
 
 # %%
 
