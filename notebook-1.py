@@ -15,7 +15,7 @@ import tensorflow as tf
 from tensorflow import keras
 from tensorflow.random import set_seed
 from tensorflow.keras.optimizers import RMSprop
-from tensorflow.keras.callbacks import TensorBoard
+from tensorflow.keras.callbacks import TensorBoard, ModelCheckpoint
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from sklearn.metrics import confusion_matrix
 # %load_ext tensorboard
@@ -205,6 +205,9 @@ print(test_labels[:10])
 test_generator.class_indices
 
 # %%
+callbacks = [checkpoint, tensorboard, earlystop]
+# %%
+
 RMSprop_32_64 = tf.keras.models.Sequential([
     # Note the input shape is the desired size of the image 300x300 with 3 bytes color
     # This is the first convolution
@@ -220,24 +223,27 @@ RMSprop_32_64 = tf.keras.models.Sequential([
     # Only 1 output neuron. It will contain a value from 0-1
     tf.keras.layers.Dense(1, activation='sigmoid')
 ])
-# %%
 RMSprop_32_64.summary()
+# %%
 # %%
 %%time
 RMSprop_32_64.compile(loss='binary_crossentropy',
               optimizer=RMSprop(lr=0.0001),
               metrics=['accuracy'])
 # %%
+
+# os.makedirs(filepath,exist_ok=True)
 tensorboard = TensorBoard(log_dir=f'./logs/RMSprop_32_64_{datetime.datetime.now().strftime("%Y%m%d-%H%M%S")}')
 earlystop = tf.keras.callbacks.EarlyStopping(patience=3, verbose=True)
 # %%
 %%time
+checkpoint = ModelCheckpoint(filepath=r'./checkpoints/RMSprop_32_64', verbose=1, save_best_only=True, mode='auto')
 history1 = RMSprop_32_64.fit(
       train_generator,
     #   steps_per_epoch=8,  
       epochs=100, #epochs=15
       verbose=1,
-      callbacks=[earlystop, tensorboard],
+      callbacks=[earlystop, tensorboard, checkpoint],
       validation_data=val_generator)
 
 # %%
@@ -268,22 +274,21 @@ Adam_32_64 = tf.keras.models.Sequential([
     # Only 1 output neuron. It will contain a value from 0-1
     tf.keras.layers.Dense(1, activation='sigmoid')
 ])
-# %%
 Adam_32_64.summary()
-# %%
 Adam_32_64.compile(loss='binary_crossentropy',
               optimizer="Adam",
               metrics=['accuracy'])
 
 # %%
 %%time
+checkpoint = ModelCheckpoint(filepath=r'./checkpoints/Adam_32_64_', verbose=1, save_best_only=True, mode='auto')
 tensorboard = TensorBoard(log_dir=f'./logs/Adam_32_64_{datetime.datetime.now().strftime("%Y%m%d-%H%M%S")}')
 history2 = Adam_32_64.fit(
       train_generator,
     #   steps_per_epoch=8,  
       epochs=100, #epochs=15
       verbose=1,
-      callbacks=[earlystop, tensorboard],
+      callbacks=[earlystop, tensorboard, checkpoint],
       validation_data=val_generator)
 
 # %%
@@ -309,22 +314,20 @@ Adam_32_64_64 = tf.keras.models.Sequential([
     # Only 1 output neuron. It will contain a value from 0-1
     tf.keras.layers.Dense(1, activation='sigmoid')
 ])
-# %%
 Adam_32_64_64.summary()
-# %%
 Adam_32_64_64.compile(loss='binary_crossentropy',
               optimizer="Adam",
               metrics=['accuracy'])
-
 # %%
 %%time
+checkpoint = ModelCheckpoint(filepath=r'./checkpoints/Adam_32_64_64_', verbose=1, save_best_only=True, mode='auto')
 tensorboard = TensorBoard(log_dir=f'./logs/Adam_32_64_64_{datetime.datetime.now().strftime("%Y%m%d-%H%M%S")}')
 history3 = Adam_32_64_64.fit(
       train_generator,
     #   steps_per_epoch=8,  
       epochs=100, #epochs=15
       verbose=1,
-      callbacks=[earlystop, tensorboard],
+      callbacks=[tensorboard, earlystop, checkpoint],
       validation_data=val_generator)
 
 # %%
@@ -349,22 +352,20 @@ Adam_32_64_128 = tf.keras.models.Sequential([
     # Only 1 output neuron. It will contain a value from 0-1
     tf.keras.layers.Dense(1, activation='sigmoid')
 ])
-# %%
 Adam_32_64_128.summary()
-# %%
 Adam_32_64_128.compile(loss='binary_crossentropy',
               optimizer="Adam",
               metrics=['accuracy'])
-
 # %%
 %%time
+checkpoint = ModelCheckpoint(filepath=r'./checkpoints/Adam_32_64_128_', verbose=1, save_best_only=True, mode='auto')
 tensorboard = TensorBoard(log_dir=f'./logs/Adam_32_64_128_{datetime.datetime.now().strftime("%Y%m%d-%H%M%S")}')
 history4 = Adam_32_64_128.fit(
       train_generator,
     #   steps_per_epoch=8,  
       epochs=100, #epochs=15
       verbose=1,
-      callbacks=[earlystop, tensorboard],
+      callbacks=[earlystop, tensorboard, checkpoint],
       validation_data=val_generator)
 
 # %%
@@ -391,22 +392,21 @@ Adam_32_64_128_256 = tf.keras.models.Sequential([
     # Only 1 output neuron. It will contain a value from 0-1
     tf.keras.layers.Dense(1, activation='sigmoid')
 ])
-# %%
 Adam_32_64_128_256.summary()
-# %%
 Adam_32_64_128_256.compile(loss='binary_crossentropy',
               optimizer="Adam",
               metrics=['accuracy'])
 
 # %%
 %%time
-tensorboard = TensorBoard(log_dir=f'./logs/model5_{datetime.datetime.now().strftime("%Y%m%d-%H%M%S")}')
+checkpoint = ModelCheckpoint(filepath=r'./checkpoints/Adam_32_64_128_256', verbose=1, save_best_only=True, mode='auto')
+tensorboard = TensorBoard(log_dir=f'./logs/Adam_32_64_128_256{datetime.datetime.now().strftime("%Y%m%d-%H%M%S")}')
 history5 = Adam_32_64_128_256.fit(
       train_generator,
     #   steps_per_epoch=8,  
       epochs=100, #epochs=15
       verbose=1,
-      callbacks=[earlystop, tensorboard],
+      callbacks=[earlystop, tensorboard, checkpoint],
       validation_data=val_generator)
 
 # %%
@@ -433,22 +433,21 @@ Adam_32_64_64_64 = tf.keras.models.Sequential([
     # Only 1 output neuron. It will contain a value from 0-1
     tf.keras.layers.Dense(1, activation='sigmoid')
 ])
-# %%
 Adam_32_64_64_64.summary()
-# %%
 Adam_32_64_64_64.compile(loss='binary_crossentropy',
               optimizer="Adam",
               metrics=['accuracy'])
 
 # %%
 %%time
+checkpoint = ModelCheckpoint(filepath=r'./checkpoints/Adam_32_64_64_64_', verbose=1, save_best_only=True, mode='auto')
 tensorboard = TensorBoard(log_dir=f'./logs/Adam_32_64_64_64_{datetime.datetime.now().strftime("%Y%m%d-%H%M%S")}')
 history6 = Adam_32_64_64_64.fit(
       train_generator,
     #   steps_per_epoch=8,  
       epochs=100, #epochs=15
       verbose=1,
-      callbacks=[earlystop, tensorboard],
+      callbacks=[earlystop, tensorboard, checkpoint],
       validation_data=val_generator)
 
 # %%
@@ -477,22 +476,21 @@ Adam_32_64_64_64_P5 = tf.keras.models.Sequential([
     # Only 1 output neuron. It will contain a value from 0-1
     tf.keras.layers.Dense(1, activation='sigmoid')
 ])
-# %%
 Adam_32_64_64_64_P5.summary()
-# %%
 Adam_32_64_64_64_P5.compile(loss='binary_crossentropy',
               optimizer="Adam",
               metrics=['accuracy'])
 
 # %%
 %%time
+checkpoint = ModelCheckpoint(filepath=r'./checkpoints/Adam_32_64_64_64_P5_', verbose=1, save_best_only=True, mode='auto')
 tensorboard = TensorBoard(log_dir=f'./logs/Adam_32_64_64_64_P5_{datetime.datetime.now().strftime("%Y%m%d-%H%M%S")}')
 history7 = Adam_32_64_64_64_P5.fit(
       train_generator,
     #   steps_per_epoch=8,  
       epochs=100, #epochs=15
       verbose=1,
-      callbacks=[earlystop, tensorboard],
+      callbacks=[tensorboard, earlystop, checkpoint],
       validation_data=val_generator)
 
 # %%
@@ -521,22 +519,21 @@ Adam_32_32_32_32 = tf.keras.models.Sequential([
     # Only 1 output neuron. It will contain a value from 0-1
     tf.keras.layers.Dense(1, activation='sigmoid')
 ])
-# %%
 Adam_32_32_32_32.summary()
-# %%
 Adam_32_32_32_32.compile(loss='binary_crossentropy',
               optimizer="Adam",
               metrics=['accuracy'])
 
 # %%
 %%time
+checkpoint = ModelCheckpoint(filepath=r'./checkpoints/Adam_32_32_32_32_', verbose=1, save_best_only=True, mode='auto')
 tensorboard = TensorBoard(log_dir=f'./logs/Adam_32_32_32_32_{datetime.datetime.now().strftime("%Y%m%d-%H%M%S")}')
 history8 = Adam_32_32_32_32.fit(
       train_generator,
     #   steps_per_epoch=8,  
       epochs=100, #epochs=15
       verbose=1,
-      callbacks=[earlystop, tensorboard],
+      callbacks=[tensorboard, earlystop, checkpoint],
       validation_data=val_generator)
 
 # %%
@@ -575,13 +572,14 @@ Adam_32_32_32_32_2D.compile(loss='binary_crossentropy',
 
 # %%
 %%time
+checkpoint = ModelCheckpoint(filepath=r'./checkpoints/Adam_32_32_32_32_2D_', verbose=1, save_best_only=True, mode='auto')
 tensorboard = TensorBoard(log_dir=f'./logs/Adam_32_32_32_32_2D_{datetime.datetime.now().strftime("%Y%m%d-%H%M%S")}')
 history9 = Adam_32_32_32_32_2D.fit(
       train_generator,
     #   steps_per_epoch=8,  
       epochs=100, #epochs=15
       verbose=1,
-      callbacks=[earlystop, tensorboard],
+      callbacks=[earlystop, tensorboard, checkpoint],
       validation_data=val_generator)
 
 # %%
