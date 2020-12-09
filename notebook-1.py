@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 import plotly.graph_objs as go
 import plotly.express as px
+import seaborn as sns
 
 import tensorflow as tf
 from tensorflow import keras
@@ -18,6 +19,7 @@ from tensorflow.keras.optimizers import RMSprop
 from tensorflow.keras.callbacks import TensorBoard, ModelCheckpoint
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from sklearn.metrics import confusion_matrix
+from sklearn import metrics
 # %load_ext tensorboard
 set_seed(42)
 np.random.seed(42)
@@ -53,7 +55,7 @@ def plot_results(results):
   fig.show()
 
 def plotImages(images_arr, labels_arr):
-    labels_arr = ['Normal' if label == 0 else 'Pneumonia' for label in labels_arr]
+    labels_arr = ['Normal: 0' if label == 0 else 'Pneumonia: 1' for label in labels_arr]
     fig, axes = plt.subplots(1, 10, figsize=(20,20))
     axes = axes.flatten()
     for img, label, ax in zip( images_arr, labels_arr, axes):
@@ -63,45 +65,20 @@ def plotImages(images_arr, labels_arr):
     plt.tight_layout()
     plt.show()
 
-def plot_confusion_matrix(cm,
-                          normalize=True,
-                          title='Confusion matrix',
-                          cmap=plt.cm.Greens):
-    """
-    This function prints and plots the confusion matrix.
-    Normalization can be applied by setting `normalize=True`.
-    """
-    classes = ['Normal','Pneumonia']
+def evaluate_results(model): 
+    predictions = model.predict(X_test).round()
+    cm = metrics.confusion_matrix(y_test, predictions,
+                                normalize='true')
 
-    plt.imshow(cm, interpolation='nearest', cmap=cmap)
-    plt.title(title)
-    plt.colorbar()
-    tick_marks = np.arange(len(classes))
-    plt.xticks(tick_marks, classes, rotation=45)
-    plt.yticks(tick_marks, classes)
+    ax = sns.heatmap(cm, cmap='Greens',annot=True,square=True)
+    ax.set(xlabel='Predicted Class',ylabel='True Class')
+    print(metrics.classification_report(y_test, predictions))
 
-    if normalize:
-        cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
-        print("Normalized confusion matrix")
-    else:
-        print('Confusion matrix, without normalization')
+# def prepare_confusion_matrix(model):
 
-    print(cm)
-
-    thresh = cm.max() / 2.
-    for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
-        plt.text(j, i, cm[i, j],
-            horizontalalignment="center",
-            color="white" if cm[i, j] > thresh else "black")
-
-    plt.tight_layout()
-    plt.ylabel('True label')
-    plt.xlabel('Predicted label')
-
-def prepare_confusion_matrix(model):
-    predictions = model.predict(x=test_generator, verbose=2).round()
-    cm = confusion_matrix(y_true=test_generator.classes, y_pred=predictions)
-    return cm
+#     predictions = model.predict(X_test).round()
+#     cm = confusion_matrix(y_test, predictions)
+#     return cm, predictions
     # test_generator.class_indices
   
 # %% [markdown]
@@ -134,6 +111,8 @@ train_pneumonia_files = [file for file in os.listdir(train_pneumonia) if file.en
 for path in all_paths:
     print(f'{path} has  {len(os.listdir(path))}  files')
 
+# %%
+
 # %% [markdown]
 ## Showing Images
 # %%
@@ -143,27 +122,29 @@ img_datagen = ImageDataGenerator(rescale=1./255)
 # Flow training images in batches of 128 using train_datagen generator
 train_generator = img_datagen.flow_from_directory('../project_image_data/train/',  # Source dir for training images
                                                   target_size=(64, 64),  # All images will be resized to 150x150
-                                                  batch_size=128,
+                                                  batch_size=2606, #128
                                                   color_mode='grayscale',
                                                   # Since we use binary_crossentropy loss, we need binary labels
                                                   class_mode='binary')
 
 val_generator = img_datagen.flow_from_directory('../project_image_data/val/', # This is th source dir for validation images
                                                  target_size=(64, 64),  # All images will be resized to 150x150
-                                                 batch_size=128,
+                                                 batch_size=92, #128
                                                  color_mode='grayscale',
                                                  # Since we use binary_crossentropy loss, we need binary labels
                                                  class_mode='binary')
 
 test_generator = img_datagen.flow_from_directory('../project_image_data/test/', # This is th source dir for validation images
                                                  target_size=(64, 64),  # All images will be resized to 150x150
-                                                 batch_size=128,
+                                                 batch_size=624, #128
                                                  color_mode='grayscale',
                                                  # Since we use binary_crossentropy loss, we need binary labels
                                                  class_mode='binary',
                                                  shuffle=False)       
 # %%
-# X_test, y_test = next(test_generator)
+X_train,y_train = next(train_generator)
+X_test,y_test = next(test_generator)
+X_val,y_val = next(val_generator)
 # %%
 '''nrows = 4
 ncols = 4
@@ -191,13 +172,20 @@ plt.show()'''
 
 
 # %%
-imgs, labels = next(train_generator)
-plotImages(imgs, labels)
-print()
+# X_train,y_train = next(train_generator)
+# X_test,y_test = next(test_generator)
+# X_val,y_val = next(val_generator)
 # %%
-test_imgs, test_labels = next(test_generator)
-plotImages(test_imgs, test_labels)
-print(test_labels[:10])
+plotImages(X_train, y_train)
+print(y_train[:10])
+# %%
+# imgs, labels = next(train_generator)
+# plotImages(imgs, labels)
+# print()
+# %%
+# test_imgs, test_labels = next(X_test,y_test)
+# plotImages(test_imgs, test_labels)
+# print(test_labels[:10])
 # %%
 # test_generator.classes
 
@@ -205,7 +193,7 @@ print(test_labels[:10])
 test_generator.class_indices
 
 # %%
-callbacks = [checkpoint, tensorboard, earlystop]
+# callbacks = [checkpoint, tensorboard, earlystop]
 # %%
 
 RMSprop_32_64 = tf.keras.models.Sequential([
@@ -229,7 +217,7 @@ RMSprop_32_64.summary()
 %%time
 RMSprop_32_64.compile(loss='binary_crossentropy',
               optimizer=RMSprop(lr=0.0001),
-              metrics=['accuracy'])
+              metrics=['accuracy',tf.keras.metrics.Recall()])
 # %%
 
 # os.makedirs(filepath,exist_ok=True)
@@ -239,17 +227,18 @@ earlystop = tf.keras.callbacks.EarlyStopping(patience=3, verbose=True)
 %%time
 checkpoint = ModelCheckpoint(filepath=r'./checkpoints/RMSprop_32_64', verbose=1, save_best_only=True, mode='auto')
 history1 = RMSprop_32_64.fit(
-      train_generator,
+      X_train, 
+      y_train,
     #   steps_per_epoch=8,  
+      batch_size=128,
       epochs=100, #epochs=15
       verbose=1,
       callbacks=[earlystop, tensorboard, checkpoint],
-      validation_data=val_generator)
+      validation_data=(X_val, y_val))
 
 # %%
 plot_results(history1.history)
-cm = prepare_confusion_matrix(RMSprop_32_64)
-plot_confusion_matrix(cm)
+evaluate_results(RMSprop_32_64)
 
 # %%
 '''predictions = RMSprop_32_64.predict(x=test_generator, verbose=2)
@@ -277,24 +266,25 @@ Adam_32_64 = tf.keras.models.Sequential([
 Adam_32_64.summary()
 Adam_32_64.compile(loss='binary_crossentropy',
               optimizer="Adam",
-              metrics=['accuracy'])
+              metrics=['accuracy',tf.keras.metrics.Recall()])
 
 # %%
 %%time
 checkpoint = ModelCheckpoint(filepath=r'./checkpoints/Adam_32_64_', verbose=1, save_best_only=True, mode='auto')
 tensorboard = TensorBoard(log_dir=f'./logs/Adam_32_64_{datetime.datetime.now().strftime("%Y%m%d-%H%M%S")}')
 history2 = Adam_32_64.fit(
-      train_generator,
+      X_train, 
+      y_train,
     #   steps_per_epoch=8,  
+      batch_size=128,
       epochs=100, #epochs=15
       verbose=1,
       callbacks=[earlystop, tensorboard, checkpoint],
-      validation_data=val_generator)
+      validation_data=(X_val, y_val))
 
 # %%
 plot_results(history2.history)
-cm = prepare_confusion_matrix(Adam_32_64)
-plot_confusion_matrix(cm)
+evaluate_results(Adam_32_64)
 
 # %%
 Adam_32_64_64 = tf.keras.models.Sequential([
@@ -317,23 +307,24 @@ Adam_32_64_64 = tf.keras.models.Sequential([
 Adam_32_64_64.summary()
 Adam_32_64_64.compile(loss='binary_crossentropy',
               optimizer="Adam",
-              metrics=['accuracy'])
+              metrics=['accuracy',tf.keras.metrics.Recall()])
 # %%
 %%time
 checkpoint = ModelCheckpoint(filepath=r'./checkpoints/Adam_32_64_64_', verbose=1, save_best_only=True, mode='auto')
 tensorboard = TensorBoard(log_dir=f'./logs/Adam_32_64_64_{datetime.datetime.now().strftime("%Y%m%d-%H%M%S")}')
 history3 = Adam_32_64_64.fit(
-      train_generator,
+      X_train, 
+      y_train,
     #   steps_per_epoch=8,  
+      batch_size=128,
       epochs=100, #epochs=15
       verbose=1,
       callbacks=[tensorboard, earlystop, checkpoint],
-      validation_data=val_generator)
+      validation_data=(X_val, y_val))
 
 # %%
 plot_results(history3.history)
-cm = prepare_confusion_matrix(Adam_32_64_64)
-plot_confusion_matrix(cm)
+evaluate_results(Adam_32_64_64)
 # %%
 Adam_32_64_128 = tf.keras.models.Sequential([
     # Note the input shape is the desired size of the image 300x300 with 3 bytes color
@@ -355,23 +346,24 @@ Adam_32_64_128 = tf.keras.models.Sequential([
 Adam_32_64_128.summary()
 Adam_32_64_128.compile(loss='binary_crossentropy',
               optimizer="Adam",
-              metrics=['accuracy'])
+              metrics=['accuracy',tf.keras.metrics.Recall()])
 # %%
 %%time
 checkpoint = ModelCheckpoint(filepath=r'./checkpoints/Adam_32_64_128_', verbose=1, save_best_only=True, mode='auto')
 tensorboard = TensorBoard(log_dir=f'./logs/Adam_32_64_128_{datetime.datetime.now().strftime("%Y%m%d-%H%M%S")}')
 history4 = Adam_32_64_128.fit(
-      train_generator,
+      X_train, 
+      y_train,
     #   steps_per_epoch=8,  
+      batch_size=128,
       epochs=100, #epochs=15
       verbose=1,
       callbacks=[earlystop, tensorboard, checkpoint],
-      validation_data=val_generator)
+      validation_data=(X_val, y_val))
 
 # %%
 plot_results(history4.history)
-cm = prepare_confusion_matrix(Adam_32_64_128)
-plot_confusion_matrix(cm)
+evaluate_results(Adam_32_64_128)
 # %%
 Adam_32_64_128_256 = tf.keras.models.Sequential([
     # Note the input shape is the desired size of the image 300x300 with 3 bytes color
@@ -395,24 +387,25 @@ Adam_32_64_128_256 = tf.keras.models.Sequential([
 Adam_32_64_128_256.summary()
 Adam_32_64_128_256.compile(loss='binary_crossentropy',
               optimizer="Adam",
-              metrics=['accuracy'])
+              metrics=['accuracy',tf.keras.metrics.Recall()])
 
 # %%
 %%time
 checkpoint = ModelCheckpoint(filepath=r'./checkpoints/Adam_32_64_128_256', verbose=1, save_best_only=True, mode='auto')
 tensorboard = TensorBoard(log_dir=f'./logs/Adam_32_64_128_256{datetime.datetime.now().strftime("%Y%m%d-%H%M%S")}')
 history5 = Adam_32_64_128_256.fit(
-      train_generator,
+      X_train, 
+      y_train,
     #   steps_per_epoch=8,  
+      batch_size=128,
       epochs=100, #epochs=15
       verbose=1,
       callbacks=[earlystop, tensorboard, checkpoint],
-      validation_data=val_generator)
+      validation_data=(X_val, y_val))
 
 # %%
 plot_results(history5.history)
-cm = prepare_confusion_matrix(Adam_32_64_128_256)
-plot_confusion_matrix(cm)
+evaluate_results(Adam_32_64_128_256)
 # %%
 Adam_32_64_64_64 = tf.keras.models.Sequential([
     # Note the input shape is the desired size of the image 300x300 with 3 bytes color
@@ -436,24 +429,25 @@ Adam_32_64_64_64 = tf.keras.models.Sequential([
 Adam_32_64_64_64.summary()
 Adam_32_64_64_64.compile(loss='binary_crossentropy',
               optimizer="Adam",
-              metrics=['accuracy'])
+              metrics=['accuracy',tf.keras.metrics.Recall()])
 
 # %%
 %%time
 checkpoint = ModelCheckpoint(filepath=r'./checkpoints/Adam_32_64_64_64_', verbose=1, save_best_only=True, mode='auto')
 tensorboard = TensorBoard(log_dir=f'./logs/Adam_32_64_64_64_{datetime.datetime.now().strftime("%Y%m%d-%H%M%S")}')
 history6 = Adam_32_64_64_64.fit(
-      train_generator,
+      X_train, 
+      y_train,
     #   steps_per_epoch=8,  
+      batch_size=128,
       epochs=100, #epochs=15
       verbose=1,
       callbacks=[earlystop, tensorboard, checkpoint],
-      validation_data=val_generator)
+      validation_data=(X_val, y_val))
 
 # %%
 plot_results(history6.history)
-cm = prepare_confusion_matrix(Adam_32_64_64_64)
-plot_confusion_matrix(cm)
+evaluate_results(Adam_32_64_64_64)
 # %%
 earlystop = tf.keras.callbacks.EarlyStopping(patience=5, verbose=True)
 Adam_32_64_64_64_P5 = tf.keras.models.Sequential([
@@ -479,24 +473,25 @@ Adam_32_64_64_64_P5 = tf.keras.models.Sequential([
 Adam_32_64_64_64_P5.summary()
 Adam_32_64_64_64_P5.compile(loss='binary_crossentropy',
               optimizer="Adam",
-              metrics=['accuracy'])
+              metrics=['accuracy',tf.keras.metrics.Recall()])
 
 # %%
 %%time
 checkpoint = ModelCheckpoint(filepath=r'./checkpoints/Adam_32_64_64_64_P5_', verbose=1, save_best_only=True, mode='auto')
 tensorboard = TensorBoard(log_dir=f'./logs/Adam_32_64_64_64_P5_{datetime.datetime.now().strftime("%Y%m%d-%H%M%S")}')
 history7 = Adam_32_64_64_64_P5.fit(
-      train_generator,
+      X_train, 
+      y_train,
     #   steps_per_epoch=8,  
+      batch_size=128,
       epochs=100, #epochs=15
       verbose=1,
       callbacks=[tensorboard, earlystop, checkpoint],
-      validation_data=val_generator)
+      validation_data=(X_val, y_val))
 
 # %%
 plot_results(history7.history)
-cm = prepare_confusion_matrix(Adam_32_64_64_64_P5)
-plot_confusion_matrix(cm)
+evaluate_results(Adam_32_64_64_64_P5)
 # %%
 earlystop = tf.keras.callbacks.EarlyStopping(patience=3, verbose=True)
 Adam_32_32_32_32 = tf.keras.models.Sequential([
@@ -522,24 +517,25 @@ Adam_32_32_32_32 = tf.keras.models.Sequential([
 Adam_32_32_32_32.summary()
 Adam_32_32_32_32.compile(loss='binary_crossentropy',
               optimizer="Adam",
-              metrics=['accuracy'])
+              metrics=['accuracy',tf.keras.metrics.Recall()])
 
 # %%
 %%time
 checkpoint = ModelCheckpoint(filepath=r'./checkpoints/Adam_32_32_32_32_', verbose=1, save_best_only=True, mode='auto')
 tensorboard = TensorBoard(log_dir=f'./logs/Adam_32_32_32_32_{datetime.datetime.now().strftime("%Y%m%d-%H%M%S")}')
 history8 = Adam_32_32_32_32.fit(
-      train_generator,
+      X_train, 
+      y_train,
     #   steps_per_epoch=8,  
+      batch_size=128,
       epochs=100, #epochs=15
       verbose=1,
       callbacks=[tensorboard, earlystop, checkpoint],
-      validation_data=val_generator)
+      validation_data=(X_val, y_val))
 
 # %%
 plot_results(history8.history)
-cm = prepare_confusion_matrix(Adam_32_32_32_32)
-plot_confusion_matrix(cm)
+evaluate_results(Adam_32_32_32_32)
 # %% [markdown]
 ### Use LIME to show 'feature' selection in a sense
 # %%
@@ -568,22 +564,31 @@ Adam_32_32_32_32_2D.summary()
 # %%
 Adam_32_32_32_32_2D.compile(loss='binary_crossentropy',
               optimizer="Adam",
-              metrics=['accuracy'])
+              metrics=['accuracy',tf.keras.metrics.Recall()])
 
 # %%
 %%time
 checkpoint = ModelCheckpoint(filepath=r'./checkpoints/Adam_32_32_32_32_2D_', verbose=1, save_best_only=True, mode='auto')
 tensorboard = TensorBoard(log_dir=f'./logs/Adam_32_32_32_32_2D_{datetime.datetime.now().strftime("%Y%m%d-%H%M%S")}')
 history9 = Adam_32_32_32_32_2D.fit(
-      train_generator,
+      X_train, 
+      y_train,
+      batch_size=128,
     #   steps_per_epoch=8,  
       epochs=100, #epochs=15
       verbose=1,
       callbacks=[earlystop, tensorboard, checkpoint],
-      validation_data=val_generator)
+      validation_data=(X_val, y_val))
 
 # %%
 plot_results(history9.history)
-cm = prepare_confusion_matrix(Adam_32_32_32_32_2D)
-plot_confusion_matrix(cm)
+evaluate_results(Adam_32_32_32_32_2D)
+# %%
+# %%
+# %%
+
+# %%
+
+# %%
+
 # %%
