@@ -181,6 +181,7 @@ plt.show()'''
 # %%
 plotImages(X_train, y_train)
 print(y_train[:10])
+print(X_train[0].shape)
 # %%
 # imgs, labels = next(train_generator)
 # plotImages(imgs, labels)
@@ -424,6 +425,7 @@ Adam_32_64_64_64 = tf.keras.models.Sequential([
     tf.keras.layers.MaxPooling2D(2,2),
 
     tf.keras.layers.Flatten(),
+
     # 512 neuron hidden layer
     # tf.keras.layers.Dense(512, activation='relu'),
     # Only 1 output neuron. It will contain a value from 0-1
@@ -436,7 +438,7 @@ Adam_32_64_64_64.compile(loss='binary_crossentropy',
 
 # %%
 %%time
-checkpoint = ModelCheckpoint(filepath=r'./checkpoints/Adam_32_64_64_64_', verbose=1, save_best_only=True, mode='auto')
+checkpoint = ModelCheckpoint(filepath=r'./checkpoints/Adam_32_64_64_64_', verbose=1, save_best_only=True, save_weights_only=True, mode='auto')
 tensorboard = TensorBoard(log_dir=f'./logs/Adam_32_64_64_64_{datetime.datetime.now().strftime("%Y%m%d-%H%M%S")}')
 history6 = Adam_32_64_64_64.fit(
       X_train, 
@@ -590,6 +592,21 @@ evaluate_results(Adam_32_32_32_32_2D)
 # visualkeras.layered_view(Adam_32_32_32_32, to_file='network_visual.png').show()
 # %%
 testload = tf.keras.models.load_model('Adam_32_32_32_32__best')
+
+# %%
+checkpoint = ModelCheckpoint(filepath=r'./checkpoints/testloadd', verbose=1, save_best_only=True, save_weights_only=True, mode='auto')
+tensorboard = TensorBoard(log_dir=f'./logs/Adam_32_64_64_64_{datetime.datetime.now().strftime("%Y%m%d-%H%M%S")}')
+test_HISTORY = testload.fit(
+      X_train, 
+      y_train,
+    #   steps_per_epoch=8,  
+      batch_size=128,
+      epochs=100, #epochs=15
+      verbose=1,
+      callbacks=[earlystop, tensorboard, checkpoint],
+      validation_data=(X_val, y_val))
+# %%
+visualkeras.layered_view(testload).show()
 
 # %%
 evaluate_results(testload)
