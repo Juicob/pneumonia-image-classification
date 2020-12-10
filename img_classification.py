@@ -5,28 +5,35 @@ from PIL import Image, ImageOps
 import numpy as np
 
 weights_file = "./Adam_32_32_32_32__best"
-# weights_file = "./checkpoints/testloadd.data-00000-of-00001"
+# weights_file = "./checkpoints/keras_model.h5"
+# weights_file = "./model.savedmodel"
 def teachable_machine_classification(img, weights_file):
     # Load the model
     model = tf.keras.models.load_model(weights_file)
 
     # Create the array of the right shape to feed into the keras model
-    data = np.ndarray(shape=(1, 64, 64, ), dtype=np.float32)
+    data = np.ndarray(shape=(1, 64, 64, 1), dtype=np.float32)
 
-    print(data)
+    # print(data)
     image = ImageOps.grayscale(img)
     #image sizing
     size = (64,64)
     image = ImageOps.fit(image, size, Image.ANTIALIAS)
 
+
     #turn the image into a numpy array
     image_array = np.asarray(image)
-    
+    # image_array = np.append(image_array.shape, [1])
+    # image_array = image_array.reshape((1,) + image_array.shape)
     # Normalize the image
-    normalized_image_array = (image_array.astype(np.float32) / 127.0) - 1
-    print(normalized_image_array)
+    normalized_image_array = (image_array.astype(np.float32) / 32.0) - 1
+    normalized_image_array = np.expand_dims(normalized_image_array, axis=2)
+    # print(normalized_image_array)
     # Load the image into the array
+    # data = data.reshape((64, 64, 1))
     data[0] = normalized_image_array
+    # data[0] = image_array
+    # data[0] = np.array([64,64,1])
 
     # run the inference
     prediction = model.predict(data)

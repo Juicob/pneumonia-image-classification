@@ -2,6 +2,7 @@ import streamlit as st
 from PIL import Image, ImageOps
 from img_classification import teachable_machine_classification
 
+
 st.title("Pneumonia Classifier")
 # st.header("")
 st.header("Upload a chest X-ray image to be classified as Normal or Pneumonia")
