@@ -1,2 +1,2 @@
-model_checkpoint_path: "testloadd"
-all_model_checkpoint_paths: "testloadd"
+model_checkpoint_path: "Adam_32_64_64_64_"
+all_model_checkpoint_paths: "Adam_32_64_64_64_"

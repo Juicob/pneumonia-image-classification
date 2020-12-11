@@ -18,7 +18,7 @@ from tensorflow import keras
 from tensorflow.random import set_seed
 from tensorflow.keras.optimizers import RMSprop
 from tensorflow.keras.callbacks import TensorBoard, ModelCheckpoint
-from tensorflow.keras.preprocessing.image import ImageDataGenerator, img_to_array, load_img
+from tensorflow.keras.preprocessing.image import ImageDataGenerator, img_to_array, load_img, array_to_img
 from sklearn.metrics import confusion_matrix, roc_curve, auc
 from sklearn import metrics
 
@@ -62,7 +62,9 @@ def plotImages(images_arr, labels_arr):
     labels_arr = ['Normal: 0' if label == 0 else 'Pneumonia: 1' for label in labels_arr]
     fig, axes = plt.subplots(1, 10, figsize=(20,20))
     axes = axes.flatten()
-    for img, label, ax in zip( images_arr, labels_arr, axes):
+    for img, label, ax in zip(images_arr, 
+                              labels_arr, 
+                              axes):
         ax.imshow(img)
         ax.set_title(label, size=18)
         ax.axis('off')
@@ -71,8 +73,9 @@ def plotImages(images_arr, labels_arr):
 
 def evaluate_results(model): 
     predictions = model.predict(X_test).round()
-    cm = metrics.confusion_matrix(y_test, predictions,
-                                normalize='true')
+    cm = metrics.confusion_matrix(y_test, 
+                                  predictions,
+                                  normalize='true')
 
     ax = sns.heatmap(cm, cmap='Greens',annot=True,square=True)
     ax.set(xlabel='Predicted Class',ylabel='True Class')
@@ -415,7 +418,7 @@ evaluate_results(Adam_32_64_128_256)
 Adam_32_64_64_64 = tf.keras.models.Sequential([
     # Note the input shape is the desired size of the image 300x300 with 3 bytes color
     # This is the first convolution
-    tf.keras.layers.Conv2D(32, (3,3), activation='relu', input_shape=(64, 64, 1)),
+    tf.keras.layers.Conv2D(32, (3,3), activation='relu', input_shape=(64, 64, 3)),
     tf.keras.layers.MaxPooling2D(2, 2),
     # The second convolution
     tf.keras.layers.Conv2D(64, (3,3), activation='relu'),
@@ -608,7 +611,20 @@ test_HISTORY = testload.fit(
       callbacks=[earlystop, tensorboard, checkpoint],
       validation_data=(X_val, y_val))
 # %%
-visualkeras.layered_view(testload).show()
+from collections import defaultdict
+from tensorflow.python.keras.layers import Dense, Conv2D, Flatten, Dropout, MaxPooling2D, ZeroPadding2D
+
+color_map = defaultdict(dict)
+color_map[Conv2D]['fill'] = 'rgb(128,191,183)'
+color_map[ZeroPadding2D]['fill'] = 'gray'
+color_map[Dropout]['fill'] = 'pink'
+color_map[MaxPooling2D]['fill'] = 'rgb(11,135,161)'
+color_map[Dense]['fill'] = '#a25d71'#'#928d6d'
+color_map[Flatten]['fill'] = '#6d7292' #'#6d7292'
+
+visualkeras.layered_view(testload, color_map=color_map)
+# %%
+# visualkeras.layered_view(testload, to_file='network_visual.png', color_map=color_map).show()
 
 # %%
 evaluate_results(testload)
@@ -622,14 +638,15 @@ print('Train ROC AUC Score: ', rocauc)
 # %%
 from img_classification import teachable_machine_classification
 from PIL import Image, ImageOps
-image = Image.open(r'D:\Python_Projects\flatiron\class-materials\phase04\project_image_data\test\PNEUMONIA\person1_virus_7.jpeg')
+image = Image.open(r'D:\Python_Projects\flatiron\class-materials\phase04\project_image_data\test\NORMAL\IM-0006-0001.jpeg')
 weights_file = "./Adam_32_32_32_32__best"
 
 label = teachable_machine_classification(image, weights_file)
+print(label)
 if label == 0:
-    st.write("The image has pneumonia")
+    print("The image has pneumonia")
 else:
-    st.write("The image is healthy")
+    print("The image is healthy")
 # %%
 fig = px.area(
     x=fpr, y=tpr,
@@ -650,51 +667,30 @@ fig.update_xaxes(constrain='domain', tickvals=[0,0.25,0.5,0.75,1])
 fig.show()
 
 # %%
-successive_outputs = [layer.output for layer in testload.layers[1:]]
-#visualization_model = Model(img_input, successive_outputs)
-visualization_model = tf.keras.models.Model(inputs = testload.input, outputs = successive_outputs)
-# Let's prepare a random input image from the training set.
-# horse_img_files = [os.path.join(train_normal, f) for f in train_normal]
-# human_img_files = [os.path.join(train_pneumonia, f) for f in train_normal]
-# img_path = random.choice(horse_img_files + human_img_files)
-img = load_img(train_pneumonia+'/person449_bacteria_1940.jpeg', target_size=(300, 300))  # this is a PIL image
-x = img_to_array(img)  # Numpy array with shape (150, 150, 3)
-x = x.reshape((1,) + x.shape)  # Numpy array with shape (1, 150, 150, 3)
-print(x)
-# Rescale by 1/255
-x /= 255
- 
-# Let's run our image through our network, thus obtaining all
-# intermediate representations for this image.
-successive_feature_maps = visualization_model.predict(x)
- 
-# These are the names of the layers, so can have them as part of our plot
-layer_names = [layer.name for layer in testload.layers]
- 
-# Now let's display our representations
-for layer_name, feature_map in zip(layer_names, successive_feature_maps):
-  if len(feature_map.shape) == 4:
-    # Just do this for the conv / maxpool layers, not the fully-connected layers
-    n_features = feature_map.shape[-1]  # number of features in feature map
-    # The feature map has shape (1, size, size, n_features)
-    size = feature_map.shape[1]
-    # We will tile our images in this matrix
-    display_grid = np.zeros((size, size * n_features))
-    for i in range(n_features):
-      # Postprocess the feature to make it visually palatable
-      x = feature_map[0, :, :, i]
-      x -= x.mean()
-      if x.std()>0:
-        x /= x.std()
-      x *= 64
-      x += 128
-      x = np.clip(x, 0, 255).astype('uint8')
-      # We'll tile each filter into this big horizontal grid
-      display_grid[:, i * size : (i + 1) * size] = x
-    # Display the grid
-    scale = 20. / n_features
-    plt.figure(figsize=(scale * n_features, scale))
-    plt.title(layer_name)
-    plt.grid(False)
-    plt.imshow(display_grid, aspect='auto', cmap='viridis')
+import lime
+from lime import lime_image
+from lime import lime_base
+
+from lime.wrappers.scikit_image import SegmentationAlgorithm
+from skimage.segmentation import mark_boundaries
+# %%
+# i = np.random.choice(range(len(y_train)))
+label = y_train[24]
+img = X_train[24]
+# %%
+pred = Adam_32_64_64_64.predict(np.array([img]))
+pred_class = int(pred.round())
+# %%
+# labels = train_generator.class_indices
+print(f"Image 24 = {label}: Pneumonia")
+print(f"Model Predicts {pred_class}")
+array_to_img(img)
+
+# array_to_img(img)
+# %%
+explainer = lime_image.LimeImageExplainer()
+
+explanation = explainer.explain_instance(img, Adam_32_64_64_64.predict, top_labels=2,
+                                         hide_color=None, num_samples=2000)
+
 # %%

@@ -18,6 +18,6 @@ if uploaded_file is not None:
     st.write("Classifying...")
     label = teachable_machine_classification(image, weights_file)
     if label == 0:
-        st.write("The image has pneumonia")
+        st.write("This image is classified as: Normal")
     else:
-        st.write("The image is healthy")
+        st.write("This image is classified as: Pneumonia")
