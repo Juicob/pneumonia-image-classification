@@ -77,7 +77,7 @@ def evaluate_results(model):
                                   predictions,
                                   normalize='true')
 
-    ax = sns.heatmap(cm, cmap='Greens',annot=True,square=True)
+    ax = sns.heatmap(cm, cmap='Blues',annot=True,square=True)
     ax.set(xlabel='Predicted Class',ylabel='True Class')
     print(metrics.classification_report(y_test, predictions))
 
@@ -418,7 +418,7 @@ evaluate_results(Adam_32_64_128_256)
 Adam_32_64_64_64 = tf.keras.models.Sequential([
     # Note the input shape is the desired size of the image 300x300 with 3 bytes color
     # This is the first convolution
-    tf.keras.layers.Conv2D(32, (3,3), activation='relu', input_shape=(64, 64, 3)),
+    tf.keras.layers.Conv2D(32, (3,3), activation='relu', input_shape=(64, 64, 1)),
     tf.keras.layers.MaxPooling2D(2, 2),
     # The second convolution
     tf.keras.layers.Conv2D(64, (3,3), activation='relu'),
@@ -431,7 +431,8 @@ Adam_32_64_64_64 = tf.keras.models.Sequential([
     tf.keras.layers.Flatten(),
 
     # 512 neuron hidden layer
-    # tf.keras.layers.Dense(512, activation='relu'),
+  
+    # tf.keras.layers.Dense(32, activation='relu'),
     # Only 1 output neuron. It will contain a value from 0-1
     tf.keras.layers.Dense(1, activation='sigmoid')
 ])
@@ -451,7 +452,7 @@ history6 = Adam_32_64_64_64.fit(
       batch_size=128,
       epochs=100, #epochs=15
       verbose=1,
-      callbacks=[earlystop, tensorboard, checkpoint],
+      callbacks=[earlystop, tensorboard, checkpoint], 
       validation_data=(X_val, y_val))
 
 # %%
@@ -611,6 +612,8 @@ test_HISTORY = testload.fit(
       callbacks=[earlystop, tensorboard, checkpoint],
       validation_data=(X_val, y_val))
 # %%
+evaluate_results(testload)
+# %%
 from collections import defaultdict
 from tensorflow.python.keras.layers import Dense, Conv2D, Flatten, Dropout, MaxPooling2D, ZeroPadding2D
 
@@ -626,8 +629,6 @@ visualkeras.layered_view(testload, color_map=color_map)
 # %%
 # visualkeras.layered_view(testload, to_file='network_visual.png', color_map=color_map).show()
 
-# %%
-evaluate_results(testload)
 # %%
 preds = testload.predict(X_test)
 fpr, tpr, thresh = roc_curve(y_test, preds)
