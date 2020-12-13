@@ -21,3 +21,5 @@ if uploaded_file is not None:
         st.write("This image is classified as: Normal")
     else:
         st.write("This image is classified as: Pneumonia")
+
+        
