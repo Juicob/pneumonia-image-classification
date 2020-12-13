@@ -19,12 +19,13 @@ from tensorflow.random import set_seed
 from tensorflow.keras.optimizers import RMSprop
 from tensorflow.keras.callbacks import TensorBoard, ModelCheckpoint
 from tensorflow.keras.preprocessing.image import ImageDataGenerator, img_to_array, load_img, array_to_img
+from tensorflow.python.keras.layers import Dense, Conv2D, Flatten, Dropout, MaxPooling2D, ZeroPadding2D
 from sklearn.metrics import confusion_matrix, roc_curve, auc
 from sklearn import metrics
 
 import visualkeras
+from collections import defaultdict
 
-# %load_ext tensorboard
 set_seed(42)
 np.random.seed(42)
 
@@ -104,15 +105,8 @@ val_pneumonia = os.path.join('../project_image_data/val/PNEUMONIA')
 
 all_paths = [train_normal, train_pneumonia, test_normal, test_pneumonia, val_normal, val_pneumonia]
 
-# %%
-
-'''train_normal_files = [file for file in os.listdir(train_normal) if file.endswith('.jpeg')]
-train_pneumonia_files = [file for file in os.listdir(train_pneumonia) if file.endswith('.jpeg')]
-'''
-
-# %%
-'''train_normal_files[:5]
-'''
+# %% [markdown]
+## Show number of files for each class in each folder
 # %%
 
 for path in all_paths:
@@ -121,7 +115,7 @@ for path in all_paths:
 # %%
 
 # %% [markdown]
-## Showing Images
+## Normalize image size and load into generator
 # %%
 # All images will be rescaled by 1./255
 img_datagen = ImageDataGenerator(rescale=1./255)
@@ -152,56 +146,20 @@ test_generator = img_datagen.flow_from_directory('../project_image_data/test/', 
 X_train,y_train = next(train_generator)
 X_test,y_test = next(test_generator)
 X_val,y_val = next(val_generator)
-# %%
-'''nrows = 4
-ncols = 4
 
-pic_index = 0
-
-fig = plt.gcf()
-fig.set_size_inches(ncols * 10, nrows * 10)
-
-pic_index += 8
-next_normal_pix = [os.path.join(train_normal, fname) 
-                for fname in train_normal_files[pic_index-8:pic_index]]
-next_pneumonia_pix = [os.path.join(train_pneumonia, fname) 
-                for fname in train_pneumonia_files[pic_index-8:pic_index]]
-
-for i, img_path in enumerate(next_normal_pix+next_pneumonia_pix):
-  # Set up subplot; subplot indices start at 1
-  sp = plt.subplot(nrows, ncols, i + 1)
-  sp.axis('Off') # Don't show axes (or gridlines)
-
-  img = mpimg.imread(img_path)
-  plt.imshow(img)
-
-plt.show()'''
-
-
-# %%
-# X_train,y_train = next(train_generator)
-# X_test,y_test = next(test_generator)
-# X_val,y_val = next(val_generator)
+# %% [markdown]
+## Show pictures
 # %%
 plotImages(X_train, y_train)
 print(y_train[:10])
 print(X_train[0].shape)
-# %%
-# imgs, labels = next(train_generator)
-# plotImages(imgs, labels)
-# print()
-# %%
-# test_imgs, test_labels = next(X_test,y_test)
-# plotImages(test_imgs, test_labels)
-# print(test_labels[:10])
-# %%
-# test_generator.classes
 
+# %%
+## Verify labels
 # %%
 test_generator.class_indices
-
-# %%
-# callbacks = [checkpoint, tensorboard, earlystop]
+# %% [markdown]
+## Begin modelling
 # %%
 
 RMSprop_32_64 = tf.keras.models.Sequential([
@@ -595,28 +553,32 @@ plot_results(history9.history)
 evaluate_results(Adam_32_32_32_32_2D)
 # %%
 # visualkeras.layered_view(Adam_32_32_32_32, to_file='network_visual.png').show()
+# %% [markdown]
+# After iterating over and running all the models I viewed the results of each as well as their compared accuracy/loss graphs via tensorboard. I found that the "Adam_32_32_32_32" model performed the best and stored the model within a separate filepath to ensure it doesn't get written over or compromised.
 # %%
-testload = tf.keras.models.load_model('Adam_32_32_32_32__best')
+best_model = tf.keras.models.load_model('Adam_32_32_32_32__best')
 
 # %%
-earlystop = tf.keras.callbacks.EarlyStopping(patience=3, verbose=True)
-checkpoint = ModelCheckpoint(filepath=r'./checkpoints/testloadd.hdf5', verbose=1, save_best_only=True, save_weights_only=True, mode='auto')
-tensorboard = TensorBoard(log_dir=f'./logs/Adam_32_64_64_64_{datetime.datetime.now().strftime("%Y%m%d-%H%M%S")}')
-test_HISTORY = testload.fit(
-      X_train, 
-      y_train,
-    #   steps_per_epoch=8,  
-      batch_size=128,
-      epochs=100, #epochs=15
-      verbose=1,
-      callbacks=[earlystop, tensorboard, checkpoint],
-      validation_data=(X_val, y_val))
+# earlystop = tf.keras.callbacks.EarlyStopping(patience=3, verbose=True)
+# checkpoint = ModelCheckpoint(filepath=r'./checkpoints/testloadd.hdf5', verbose=1, save_best_only=True, save_weights_only=True, mode='auto')
+# tensorboard = TensorBoard(log_dir=f'./logs/Adam_32_64_64_64_{datetime.datetime.now().strftime("%Y%m%d-%H%M%S")}')
+# test_HISTORY = best_model.fit(
+#       X_train, 
+#       y_train,
+#     #   steps_per_epoch=8,  
+#       batch_size=128,
+#       epochs=100, #epochs=15
+#       verbose=1,
+#       callbacks=[earlystop],
+#       validation_data=(X_val, y_val))
 # %%
-evaluate_results(testload)
+evaluate_results(best_model)
+# %% [markdown]
+## Best Model
+# I selected this as the best model because it had the highest accuracy at 88%. While this model does not have the highest recall which is what I would like to maximize, I believe sacrificing 4 percentage points of correctly identifying pneumonia was worth the 25% increase of correctly identifying normal lungs. 
+# %% [markdown]
+## Creating network topology visual 
 # %%
-from collections import defaultdict
-from tensorflow.python.keras.layers import Dense, Conv2D, Flatten, Dropout, MaxPooling2D, ZeroPadding2D
-
 color_map = defaultdict(dict)
 color_map[Conv2D]['fill'] = 'rgb(128,191,183)'
 color_map[ZeroPadding2D]['fill'] = 'gray'
@@ -625,29 +587,19 @@ color_map[MaxPooling2D]['fill'] = 'rgb(11,135,161)'
 color_map[Dense]['fill'] = '#a25d71'#'#928d6d'
 color_map[Flatten]['fill'] = '#6d7292' #'#6d7292'
 
-visualkeras.layered_view(testload, color_map=color_map)
+visualkeras.layered_view(best_model, color_map=color_map)
 # %%
-# visualkeras.layered_view(testload, to_file='network_visual.png', color_map=color_map).show()
+# visualkeras.layered_view(best_model, to_file='network_visual.png', color_map=color_map).show()
 
+# %% [markdown]
+## Create ROC Curve
 # %%
-preds = testload.predict(X_test)
+preds = best_model.predict(X_test)
 fpr, tpr, thresh = roc_curve(y_test, preds)
 
 # Calculate the ROC (Reciever Operating Characteristic) AUC (Area Under the Curve)
 rocauc = auc(fpr, tpr)
 print('Train ROC AUC Score: ', rocauc)
-# %%
-from img_classification import teachable_machine_classification
-from PIL import Image, ImageOps
-image = Image.open(r'D:\Python_Projects\flatiron\class-materials\phase04\project_image_data\test\NORMAL\IM-0006-0001.jpeg')
-weights_file = "./Adam_32_32_32_32__best"
-
-label = teachable_machine_classification(image, weights_file)
-print(label)
-if label == 0:
-    print("The image has pneumonia")
-else:
-    print("The image is healthy")
 # %%
 fig = px.area(
     x=fpr, y=tpr,
@@ -667,6 +619,34 @@ fig.update_xaxes(constrain='domain', tickvals=[0,0.25,0.5,0.75,1])
 
 fig.show()
 
+# %% [markdown]
+# ROC curve restates that to get a 95% true positive, we would need to be comfortable accepting a 25% false positive rate.
+# %% [markdown]
+## Recommendations
+
+# Based on my results throughout this process there are a few things I'd recommend if you were to go about building a model to predict pneumonia. 
+
+# * More data
+#   * While there were about 4 thousands images total given within the dataset. I believe that better results could be gathered if there was more data for the model to train on. CNN's will always benefit from more data as long as there are enough resources available to process it effectively.
+# * Transfer Learning
+#   * Using transfer learning from a model that was pre-trained on x-rays with and without pneumonia would yield better results in less time and with less resources. You'll spend less time iterating on network variations as the pre-trained model will already have done most of the work. Fine tuning will take considerably less time and resources and yield just as good if not better results from the right model.
+# * Resources
+#   * Before you decide to get into CNN's, be sure you have the appropriate resources available to you. Training a CNN over thousands of images is going to take a long time and a lot your computer's resources if you don't have sufficient RAM or GPU. If you don't have the hardware available to you, there are cloud services such as Google Colab that offer access GPU processers virtually through the cloud at low to no cost. 
+
+# %% [markdown]
+## Leaving below code for review
+# %%
+from img_classification import teachable_machine_classification
+from PIL import Image, ImageOps
+image = Image.open(r'D:\Python_Projects\flatiron\class-materials\phase04\project_image_data\test\NORMAL\IM-0006-0001.jpeg')
+weights_file = "./Adam_32_32_32_32__best"
+
+label = teachable_machine_classification(image, weights_file)
+print(label)
+if label == 0:
+    print("The image has pneumonia")
+else:
+    print("The image is healthy")
 # %%
 import lime
 from lime import lime_image
