@@ -46,3 +46,4 @@ Given more time I would look forward to implementing the following:
 * Build Application
     * Build out the prototype application as a live web or desktop app to provide an interactive tool that can be used to classify images by dragging and dropping images or folders.
     * Current version of the app is not fully functional but can be launched by running <streamlit run app.py> from the command line.
+![app](./images/app.gif)
